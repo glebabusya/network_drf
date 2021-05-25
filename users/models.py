@@ -17,7 +17,9 @@ class NetworkUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     closed = models.BooleanField(default=False)
 
-    friend = models.ManyToManyField(to='self')
+    friend = models.ManyToManyField(to='self',
+                                    related_name='friends',
+                                    blank=True)
 
     def get_full_name(self):
         return f'{self.first_name} {self.last_name}'

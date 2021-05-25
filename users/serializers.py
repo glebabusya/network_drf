@@ -6,11 +6,33 @@ from users.models import NetworkUser
 class UserSerializer(serializers.ModelSerializer):
     last_login = serializers.DateTimeField(read_only=True)
     link = serializers.HyperlinkedIdentityField(view_name='user_detail')
+    add_friend = serializers.HyperlinkedIdentityField(view_name='add_friend', lookup_field='id')
+    friend = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True, many=True)
+    lose_friend = serializers.HyperlinkedIdentityField(view_name='lose_friend', lookup_field='id')
+
+    def to_representation(self, instance):
+        data = super(UserSerializer, self).to_representation(instance)
+        request = self.context.get("request")
+        if not request.user.is_authenticated:
+            data.pop('lose_friend')
+            return data
+        user = request.user
+        if instance.id == user.id:
+            data.pop('add_friend')
+            data.pop('lose_friend')
+            return data
+        try:
+            user.friend.get(id=instance.id)
+            data.pop('add_friend')
+        except NetworkUser.DoesNotExist:
+            data.pop('lose_friend')
+        return data
 
     class Meta:
         model = NetworkUser
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'avatar', 'last_login', 'link'
+            'id', 'email', 'first_name', 'last_name', 'avatar',
+            'last_login', 'link', 'friend', 'add_friend', 'lose_friend'
         ]
 
 
