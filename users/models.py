@@ -1,6 +1,8 @@
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from django.db.models import Q
+
 from .managers import NetworkUserManager
 
 
@@ -26,3 +28,9 @@ class NetworkUser(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.first_name
+
+    def common_friends(self, friend_id):
+        friend_friends = self.__class__.objects.get(id=friend_id).friend.exclude(id=self.id)
+        my_friends = self.friend.exclude(id=friend_id)
+        common_friends = self.friend.filter(Q(id__in=friend_friends) & Q(id__in=my_friends))
+        return common_friends

@@ -1,25 +1,44 @@
 from rest_framework import serializers
-
 from users.models import NetworkUser
 
 
-class UserSerializer(serializers.ModelSerializer):
+class DynamicFieldsModelSerializer(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        fields = kwargs.pop('fields', None)
+        super(DynamicFieldsModelSerializer, self).__init__(*args, **kwargs)
+        if fields:
+            allowed = set(fields)
+            existing = set(self.fields.keys())
+            for field_name in existing - allowed:
+                self.fields.pop(field_name)
+
+
+class UserSerializer(DynamicFieldsModelSerializer):
     last_login = serializers.DateTimeField(read_only=True)
     link = serializers.HyperlinkedIdentityField(view_name='user_detail')
     add_friend = serializers.HyperlinkedIdentityField(view_name='add_friend', lookup_field='id')
     friend = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True, many=True)
     lose_friend = serializers.HyperlinkedIdentityField(view_name='lose_friend', lookup_field='id')
+    common_friends = serializers.SerializerMethodField('get_common_friends')
+
+    def get_common_friends(self, instance):
+        request = self.context['request']
+        common_friends = instance.common_friends(request.user.id)
+        fields = ('link', 'lose_friend', 'add_friend')
+        return UserSerializer(common_friends, context={'request': request}, many=True, fields=fields).data
 
     def to_representation(self, instance):
         data = super(UserSerializer, self).to_representation(instance)
         request = self.context.get("request")
         if not request.user.is_authenticated:
+            data.pop('common_friends')
             data.pop('lose_friend')
             return data
         user = request.user
         if instance.id == user.id:
             data.pop('add_friend')
             data.pop('lose_friend')
+            data.pop('common_friends')
             return data
         try:
             user.friend.get(id=instance.id)
@@ -32,7 +51,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = NetworkUser
         fields = [
             'id', 'email', 'first_name', 'last_name', 'avatar',
-            'last_login', 'link', 'friend', 'add_friend', 'lose_friend'
+            'last_login', 'link', 'common_friends', 'friend', 'add_friend', 'lose_friend',
         ]
 
 

@@ -20,10 +20,8 @@ class UserListAPIView(ListAPIView):
         context = {
             'request': request
         }
-
         fields = ('id', 'email', 'first_name', 'last_name', 'avatar',
-                  'last_login', 'link', 'friend')
-
+                  'last_login', 'link', 'friend', 'add_friend', 'lose_friend')
         serializer = UserSerializer(queryset, context=context, many=True)
 
         return Response(serializer.data)
