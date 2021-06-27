@@ -19,9 +19,9 @@ class NetworkUser(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     closed = models.BooleanField(default=False)
 
-    friend = models.ManyToManyField(to='self',
-                                    related_name='friends',
-                                    blank=True)
+    friends = models.ManyToManyField(to='self',
+                                     related_name='friends',
+                                     blank=True)
 
     def get_full_name(self):
         return f'{self.first_name} {self.last_name}'
@@ -30,7 +30,7 @@ class NetworkUser(AbstractBaseUser, PermissionsMixin):
         return self.first_name
 
     def common_friends(self, friend_id):
-        friend_friends = self.__class__.objects.get(id=friend_id).friend.exclude(id=self.id)
-        my_friends = self.friend.exclude(id=friend_id)
-        common_friends = self.friend.filter(Q(id__in=friend_friends) & Q(id__in=my_friends))
+        friend_friends = self.__class__.objects.get(id=friend_id).friends.exclude(id=self.id)
+        my_friends = self.friends.exclude(id=friend_id)
+        common_friends = self.friends.filter(Q(id__in=friend_friends) & Q(id__in=my_friends))
         return common_friends

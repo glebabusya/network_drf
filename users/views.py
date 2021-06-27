@@ -20,8 +20,6 @@ class UserListAPIView(ListAPIView):
         context = {
             'request': request
         }
-        fields = ('id', 'email', 'first_name', 'last_name', 'avatar',
-                  'last_login', 'link', 'friend', 'add_friend', 'lose_friend')
         serializer = UserSerializer(queryset, context=context, many=True)
 
         return Response(serializer.data)
@@ -58,8 +56,8 @@ class AddFriend(APIView):
         friend = NetworkUser.objects.get(id=id)
         if user.id == friend.id:
             return redirect('user_detail', id)
-        user.friend.add(friend)
-        friend.friend.add(user)
+        user.friends.add(friend)
+        friend.friends.add(user)
         user.save()
         friend.save()
         return redirect('user_detail', id)
@@ -73,8 +71,8 @@ class LoseFriend(APIView):
         friend = NetworkUser.objects.get(id=id)
         if user.id == friend.id:
             return redirect('user_detail', id)
-        user.friend.remove(friend)
-        friend.friend.remove(user)
+        user.friends.remove(friend)
+        friend.friends.remove(user)
         user.save()
         friend.save()
         return redirect('user_detail', id)

@@ -17,15 +17,18 @@ class UserSerializer(DynamicFieldsModelSerializer):
     last_login = serializers.DateTimeField(read_only=True)
     link = serializers.HyperlinkedIdentityField(view_name='user_detail')
     add_friend = serializers.HyperlinkedIdentityField(view_name='add_friend', lookup_field='id')
-    friend = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True, many=True)
+    friends = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True, many=True)
     lose_friend = serializers.HyperlinkedIdentityField(view_name='lose_friend', lookup_field='id')
     common_friends = serializers.SerializerMethodField('get_common_friends')
+    notes = serializers.HyperlinkedRelatedField(view_name='note_detail', read_only=True, many=True)
+    comments = serializers.HyperlinkedRelatedField(view_name='comment_detail', read_only=True, many=True)
 
     def get_common_friends(self, instance):
         request = self.context['request']
-        common_friends = instance.common_friends(request.user.id)
-        fields = ('link', 'lose_friend', 'add_friend')
-        return UserSerializer(common_friends, context={'request': request}, many=True, fields=fields).data
+        if request.user.is_authenticated:
+            common_friends = instance.common_friends(request.user.id)
+            fields = ('link', 'add_friend', 'lose_friend')
+            return UserSerializer(common_friends, context={'request': request}, many=True, fields=fields).data
 
     def to_representation(self, instance):
         data = super(UserSerializer, self).to_representation(instance)
@@ -41,7 +44,7 @@ class UserSerializer(DynamicFieldsModelSerializer):
             data.pop('common_friends')
             return data
         try:
-            user.friend.get(id=instance.id)
+            user.friends.get(id=instance.id)
             data.pop('add_friend')
         except NetworkUser.DoesNotExist:
             data.pop('lose_friend')
@@ -50,8 +53,8 @@ class UserSerializer(DynamicFieldsModelSerializer):
     class Meta:
         model = NetworkUser
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'avatar',
-            'last_login', 'link', 'common_friends', 'friend', 'add_friend', 'lose_friend',
+            'id', 'email', 'first_name', 'last_name', 'avatar', 'notes', 'comments',
+            'last_login', 'link', 'common_friends', 'friends', 'add_friend', 'lose_friend', 'closed'
         ]
 
 
