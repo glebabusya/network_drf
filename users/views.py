@@ -1,12 +1,9 @@
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
-from rest_framework import status
-from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView, CreateAPIView
+from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView, CreateAPIView, get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from .models import NetworkUser
+from .models import NetworkUser, FriendRequest
 from .serializers import UserSerializer, UserRegistrationSerializer
 from .permissions import IsOwnerOrReadOnly, IsNotAuthenticated
 
@@ -52,14 +49,12 @@ class AddFriend(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, id):
-        user = request.user
-        friend = NetworkUser.objects.get(id=id)
-        if user.id == friend.id:
-            return redirect('user_detail', id)
-        user.friends.add(friend)
-        friend.friends.add(user)
-        user.save()
-        friend.save()
+        friend = get_object_or_404(NetworkUser, id=id)
+        friend_request = FriendRequest.objects.filter(sender=friend, receiver=request.user)
+        if friend_request.exists():
+            friend_request[0].accept()
+        else:
+            obj, created = FriendRequest.objects.get_or_create(sender=request.user, receiver=friend)
         return redirect('user_detail', id)
 
 

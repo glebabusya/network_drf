@@ -34,3 +34,26 @@ class NetworkUser(AbstractBaseUser, PermissionsMixin):
         my_friends = self.friends.exclude(id=friend_id)
         common_friends = self.friends.filter(Q(id__in=friend_friends) & Q(id__in=my_friends))
         return common_friends
+
+
+class FriendRequest(models.Model):
+    sender = models.ForeignKey(NetworkUser, on_delete=models.CASCADE,
+                               related_name='friend_request_from', null=True, blank=True)
+    receiver = models.ForeignKey(NetworkUser, on_delete=models.CASCADE,
+                                 related_name='friend_request_to', null=True, blank=True)
+    sent_at = models.DateTimeField(auto_now_add=True, null=True)
+
+    def accept(self):
+        user = self.sender
+        friend = self.receiver
+        user.friends.add(friend)
+        friend.friends.add(user)
+        user.save()
+        friend.save()
+        self.delete()
+
+    def decline(self):
+        self.delete()
+
+    def __str__(self):
+        return f'from {self.sender} to {self.receiver}'
