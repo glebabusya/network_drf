@@ -14,7 +14,6 @@ class NoteSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
 
-    #notes = Note.objects.all()
     to = serializers.ChoiceField(choices=[], write_only=True)
     comment = serializers.HyperlinkedRelatedField(view_name='comment_detail', read_only=True)
     author = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True)
@@ -56,6 +55,3 @@ class CommentSerializer(serializers.ModelSerializer):
         if self.instance is not None:
             self.fields.pop('to')
         print(self.context['request'])
-
-    def get_request(self):
-        return self.context['request']

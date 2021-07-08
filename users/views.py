@@ -50,6 +50,8 @@ class AddFriend(APIView):
 
     def get(self, request, id):
         friend = get_object_or_404(NetworkUser, id=id)
+        if friend == request.user:
+            return redirect('user_detail', id)
         friend_request = FriendRequest.objects.filter(sender=friend, receiver=request.user)
         if friend_request.exists():
             friend_request[0].accept()
@@ -63,7 +65,7 @@ class LoseFriend(APIView):
 
     def get(self, request, id):
         user = request.user
-        friend = NetworkUser.objects.get(id=id)
+        friend = get_object_or_404(NetworkUser, id=id)
         if user.id == friend.id:
             return redirect('user_detail', id)
         user.friends.remove(friend)

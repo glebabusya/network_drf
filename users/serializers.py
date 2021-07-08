@@ -22,6 +22,8 @@ class UserSerializer(DynamicFieldsModelSerializer):
     common_friends = serializers.SerializerMethodField('get_common_friends')
     notes = serializers.HyperlinkedRelatedField(view_name='note_detail', read_only=True, many=True)
     comments = serializers.HyperlinkedRelatedField(view_name='comment_detail', read_only=True, many=True)
+    communities = serializers.HyperlinkedRelatedField(view_name='community_detail', read_only=True,
+                                                      many=True, lookup_field='slug')
 
     def get_common_friends(self, instance):
         request = self.context['request']
@@ -48,12 +50,14 @@ class UserSerializer(DynamicFieldsModelSerializer):
             data.pop('add_friend')
         except NetworkUser.DoesNotExist:
             data.pop('lose_friend')
+            if user.closed:
+                data.pop('communities')
         return data
 
     class Meta:
         model = NetworkUser
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'avatar', 'notes', 'comments',
+            'id', 'email', 'first_name', 'last_name', 'avatar', 'notes', 'comments', 'communities',
             'last_login', 'link', 'common_friends', 'friends', 'add_friend', 'lose_friend', 'closed'
         ]
 
