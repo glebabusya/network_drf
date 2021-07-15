@@ -12,6 +12,9 @@ class CommunityListAPIView(ListCreateAPIView):
     serializer_class = CommunitySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    def perform_create(self, serializer):
+        serializer.save(admin=self.request.user)
+
 
 class CommunityDetailAPIView(RetrieveUpdateDestroyAPIView):
     lookup_field = 'slug'
@@ -27,10 +30,7 @@ class Subscribe(APIView):
         community = get_object_or_404(Community, slug=slug)
         if community.subscribers.filter(id=request.user.id).exists():
             return redirect('community_detail', slug)
-        if community.closed:
-            obj, created = SubscribeRequest.objects.get_or_create(sender=request.user, receiver=community)
-        else:
-            community.subscribers.add(request.user)
+        community.subscribe(request.user.id)
 
         return redirect('community_detail', slug)
 

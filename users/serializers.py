@@ -1,16 +1,9 @@
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
+from rest_framework.generics import get_object_or_404
+from news.models import Note
+from news.serializers import NoteSerializer, DynamicFieldsModelSerializer
 from users.models import NetworkUser
-
-
-class DynamicFieldsModelSerializer(serializers.ModelSerializer):
-    def __init__(self, *args, **kwargs):
-        fields = kwargs.pop('fields', None)
-        super(DynamicFieldsModelSerializer, self).__init__(*args, **kwargs)
-        if fields:
-            allowed = set(fields)
-            existing = set(self.fields.keys())
-            for field_name in existing - allowed:
-                self.fields.pop(field_name)
 
 
 class UserSerializer(DynamicFieldsModelSerializer):
@@ -20,10 +13,16 @@ class UserSerializer(DynamicFieldsModelSerializer):
     friends = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True, many=True)
     lose_friend = serializers.HyperlinkedIdentityField(view_name='lose_friend', lookup_field='id')
     common_friends = serializers.SerializerMethodField('get_common_friends')
-    notes = serializers.HyperlinkedRelatedField(view_name='note_detail', read_only=True, many=True)
+    notes = serializers.SerializerMethodField('get_notes')
     comments = serializers.HyperlinkedRelatedField(view_name='comment_detail', read_only=True, many=True)
     communities = serializers.HyperlinkedRelatedField(view_name='community_detail', read_only=True,
                                                       many=True, lookup_field='slug')
+
+    def get_notes(self, instance):
+        request = self.context['request']
+        notes = instance.notes.all()
+        fields = ('link', 'text')
+        return NoteSerializer(notes, context={'request': request}, many=True, fields=('id', 'link')).data
 
     def get_common_friends(self, instance):
         request = self.context['request']

@@ -10,9 +10,6 @@ class NoteListAPIView(ListCreateAPIView):
     serializer_class = NoteSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
 
 class NoteDetailAPIView(RetrieveUpdateDestroyAPIView):
     queryset = Note.objects.all().order_by('uploaded_time')

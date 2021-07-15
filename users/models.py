@@ -1,8 +1,9 @@
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.db.models import Q
-
+from news.models import Note
 from .managers import NetworkUserManager
 
 
@@ -18,6 +19,8 @@ class NetworkUser(AbstractBaseUser, PermissionsMixin):
     objects = NetworkUserManager()
     USERNAME_FIELD = 'email'
     closed = models.BooleanField(default=False)
+
+    notes = GenericRelation(Note)
 
     friends = models.ManyToManyField(to='self',
                                      related_name='friends',

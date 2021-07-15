@@ -22,8 +22,8 @@ class Community(models.Model):
         if not self.closed:
             self.subscribers.add(user)
         else:
-            subscribe_request = SubscribeRequest(user, self)
-            subscribe_request.save()
+            obj, created = SubscribeRequest.objects.get_or_create(sender=user, receiver=self)
+            obj.save()
 
 
 class SubscribeRequest(models.Model):

@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'users',
     'news',
-    'communities'
+    'communities.apps.CommunitiesConfig'
 ]
 
 MIDDLEWARE = [
