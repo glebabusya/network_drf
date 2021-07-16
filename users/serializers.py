@@ -6,33 +6,22 @@ from news.serializers import NoteSerializer, DynamicFieldsModelSerializer
 from users.models import NetworkUser
 
 
-class UserSerializer(DynamicFieldsModelSerializer):
+class UserCloseSerializer(DynamicFieldsModelSerializer):
     last_login = serializers.DateTimeField(read_only=True)
     link = serializers.HyperlinkedIdentityField(view_name='user_detail')
     add_friend = serializers.HyperlinkedIdentityField(view_name='add_friend', lookup_field='id')
-    friends = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True, many=True)
     lose_friend = serializers.HyperlinkedIdentityField(view_name='lose_friend', lookup_field='id')
     common_friends = serializers.SerializerMethodField('get_common_friends')
-    notes = serializers.SerializerMethodField('get_notes')
-    comments = serializers.HyperlinkedRelatedField(view_name='comment_detail', read_only=True, many=True)
-    communities = serializers.HyperlinkedRelatedField(view_name='community_detail', read_only=True,
-                                                      many=True, lookup_field='slug')
-
-    def get_notes(self, instance):
-        request = self.context['request']
-        notes = instance.notes.all()
-        fields = ('link', 'text')
-        return NoteSerializer(notes, context={'request': request}, many=True, fields=('id', 'link')).data
 
     def get_common_friends(self, instance):
         request = self.context['request']
         if request.user.is_authenticated:
             common_friends = instance.common_friends(request.user.id)
             fields = ('link', 'add_friend', 'lose_friend')
-            return UserSerializer(common_friends, context={'request': request}, many=True, fields=fields).data
+            return UserPublicSerializer(common_friends, context={'request': request}, many=True, fields=fields).data
 
     def to_representation(self, instance):
-        data = super(UserSerializer, self).to_representation(instance)
+        data = super(UserCloseSerializer, self).to_representation(instance)
         request = self.context.get("request")
         if not request.user.is_authenticated:
             data.pop('common_friends')
@@ -44,14 +33,32 @@ class UserSerializer(DynamicFieldsModelSerializer):
             data.pop('lose_friend')
             data.pop('common_friends')
             return data
-        try:
-            user.friends.get(id=instance.id)
+        if user.friends.filter(id=instance.id).exists():
             data.pop('add_friend')
-        except NetworkUser.DoesNotExist:
+        else:
             data.pop('lose_friend')
-            if user.closed:
-                data.pop('communities')
         return data
+
+    class Meta:
+        model = NetworkUser
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'avatar', 'last_login', 'link', 'common_friends', 'add_friend',
+            'lose_friend', 'closed'
+        ]
+
+
+class UserPublicSerializer(UserCloseSerializer):
+    friends = serializers.HyperlinkedRelatedField(view_name='user_detail', read_only=True, many=True)
+    notes = serializers.SerializerMethodField('get_notes')
+    comments = serializers.HyperlinkedRelatedField(view_name='comment_detail', read_only=True, many=True)
+    communities = serializers.HyperlinkedRelatedField(view_name='community_detail', read_only=True,
+                                                      many=True, lookup_field='slug')
+
+    def get_notes(self, instance):
+        request = self.context['request']
+        notes = instance.notes.all()
+        fields = ('link', 'text')
+        return NoteSerializer(notes, context={'request': request}, many=True, fields=fields).data
 
     class Meta:
         model = NetworkUser

@@ -3,6 +3,7 @@ from . import views
 urlpatterns = [
     path('', views.UserListAPIView.as_view(), name='user_list'),
     path('<int:pk>', views.UserDetailAPIView.as_view(), name='user_detail'),
+    path('<int:pk>/friends', views.FriendListAPIView.as_view(), name='friend_list'),
     path('registration', views.UserRegistrationAPIView.as_view(), name='registration'),
     path('login/', include('rest_framework.urls')),
     path('add-friend/<int:id>', views.AddFriend.as_view(), name='add_friend'),

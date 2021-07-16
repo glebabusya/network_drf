@@ -4,28 +4,26 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import NetworkUser, FriendRequest
-from .serializers import UserSerializer, UserRegistrationSerializer
-from .permissions import IsOwnerOrReadOnly, IsNotAuthenticated
+from .serializers import UserPublicSerializer, UserRegistrationSerializer, UserCloseSerializer
+from .permissions import IsOwnerOrReadOnly, IsNotAuthenticated, IsOpenOrFriend
 
 
 class UserListAPIView(ListAPIView):
     queryset = NetworkUser.objects.all()
-    serializer_class = UserSerializer
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        context = {
-            'request': request
-        }
-        serializer = UserSerializer(queryset, context=context, many=True)
-
-        return Response(serializer.data)
+    lookup_field = 'id'
+    serializer_class = UserCloseSerializer
 
 
 class UserDetailAPIView(RetrieveUpdateAPIView):
     queryset = NetworkUser.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsOwnerOrReadOnly]
+
+    def get_serializer_class(self):
+        user = get_object_or_404(NetworkUser, pk=int(self.kwargs.get('pk')))
+        if user.closed:
+            if not user.friends.filter(id=self.request.user.id).exists():
+                return UserCloseSerializer
+        return UserPublicSerializer
 
 
 class UserRegistrationAPIView(CreateAPIView):
@@ -73,3 +71,11 @@ class LoseFriend(APIView):
         user.save()
         friend.save()
         return redirect('user_detail', id)
+
+
+class FriendListAPIView(ListAPIView):
+    permission_classes = [IsOpenOrFriend]
+    serializer_class = UserCloseSerializer
+
+    def get_queryset(self):
+        return get_object_or_404(NetworkUser, pk=self.kwargs.get('pk')).friends.all()
